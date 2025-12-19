@@ -1,7 +1,4 @@
-use std::{
-    alloc::Layout,
-    ptr::NonNull,
-};
+use std::{alloc::Layout, ptr::NonNull};
 
 /// A source of memory
 pub trait MemorySource {
