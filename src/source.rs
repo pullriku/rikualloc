@@ -1,5 +1,10 @@
 use core::{alloc::Layout, ptr::NonNull};
 
+pub mod static_buff;
+
+#[cfg(feature = "std")]
+pub mod os_heap;
+
 /// A source of memory
 pub trait MemorySource {
     /// Request a chunk of memory.
@@ -7,7 +12,8 @@ pub trait MemorySource {
     /// # Safety
     ///
     /// The chunk must be released with `release_chunk`
-    unsafe fn request_chunk(&mut self, size: usize) -> Option<NonNull<[u8]>>;
+    unsafe fn request_chunk(&mut self, layout: Layout)
+    -> Option<NonNull<[u8]>>;
 
     /// Release a chunk of memory
     ///
@@ -17,7 +23,13 @@ pub trait MemorySource {
     unsafe fn release_chunk(&mut self, ptr: NonNull<u8>, layout: Layout);
 }
 
-pub mod static_buff;
+impl<S: MemorySource + ?Sized> MemorySource for &mut S {
+    unsafe fn request_chunk(&mut self, layout: Layout)
+        -> Option<NonNull<[u8]>> {
+        unsafe { <S as MemorySource>::request_chunk(&mut **self, layout) }
+    }
 
-#[cfg(feature = "std")]
-pub mod os_heap;
+    unsafe fn release_chunk(&mut self, ptr: NonNull<u8>, layout: Layout) {
+        unsafe { <S as MemorySource>::release_chunk(&mut **self, ptr, layout) }
+    }
+}

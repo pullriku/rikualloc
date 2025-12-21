@@ -4,7 +4,11 @@ use crate::{allocator::MutAllocator, source::MemorySource};
 
 pub struct BumpAllocator<S: MemorySource> {
     source: S,
-    current_chunk: Option<ChunkNode>,
+
+    ptr: NonNull<u8>,
+    end: NonNull<u8>,
+
+    head: Option<NonNull<ChunkNode>>,
 }
 
 impl<S: MemorySource> MutAllocator for BumpAllocator<S> {
@@ -12,9 +16,7 @@ impl<S: MemorySource> MutAllocator for BumpAllocator<S> {
         todo!()
     }
 
-    unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
-        todo!()
-    }
+    unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {}
 }
 
 impl<S: MemorySource> Drop for BumpAllocator<S> {
