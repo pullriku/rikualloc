@@ -1,4 +1,4 @@
-use std::{alloc::Layout, ptr::NonNull};
+use core::{alloc::Layout, ptr::NonNull};
 
 /// A source of memory
 pub trait MemorySource {
@@ -17,5 +17,7 @@ pub trait MemorySource {
     unsafe fn release_chunk(&self, ptr: NonNull<u8>, layout: Layout);
 }
 
-pub mod os_heap;
 pub mod static_buff;
+
+#[cfg(feature = "std")]
+pub mod os_heap;

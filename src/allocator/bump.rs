@@ -1,6 +1,6 @@
-use std::{alloc::Layout, ptr::NonNull};
+use core::{alloc::Layout, ptr::NonNull};
 
-use crate::{alloc::MutAllocator, source::MemorySource};
+use crate::{allocator::MutAllocator, source::MemorySource};
 
 pub struct BumpAllocator<S: MemorySource> {
     source: S,
@@ -8,11 +8,13 @@ pub struct BumpAllocator<S: MemorySource> {
 }
 
 impl<S: MemorySource> MutAllocator for BumpAllocator<S> {
-    unsafe fn alloc(&mut self, layout: std::alloc::Layout) -> Option<NonNull<[u8]>> {
+    unsafe fn alloc(&mut self, layout: Layout) -> Option<NonNull<[u8]>> {
         todo!()
     }
 
-    unsafe fn dealloc(&mut self, _ptr: NonNull<u8>, _layout: std::alloc::Layout) {}
+    unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
+        todo!()
+    }
 }
 
 impl<S: MemorySource> Drop for BumpAllocator<S> {

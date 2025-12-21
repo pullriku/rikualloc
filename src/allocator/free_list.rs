@@ -1,6 +1,6 @@
-use std::ptr::NonNull;
+use core::ptr::NonNull;
 
-use crate::{alloc::MutAllocator, source::MemorySource};
+use crate::{allocator::MutAllocator, source::MemorySource};
 
 pub struct FreeList<S: MemorySource> {
     source: S,
@@ -8,11 +8,11 @@ pub struct FreeList<S: MemorySource> {
 }
 
 impl<S: MemorySource> MutAllocator for FreeList<S> {
-    unsafe fn alloc(&mut self, layout: std::alloc::Layout) -> Option<std::ptr::NonNull<[u8]>> {
+    unsafe fn alloc(&mut self, layout: core::alloc::Layout) -> Option<core::ptr::NonNull<[u8]>> {
         todo!()
     }
 
-    unsafe fn dealloc(&mut self, ptr: std::ptr::NonNull<u8>, layout: std::alloc::Layout) {
+    unsafe fn dealloc(&mut self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
         todo!()
     }
 }

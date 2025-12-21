@@ -1,4 +1,4 @@
-use std::{alloc::Layout, ptr::NonNull};
+use core::{alloc::Layout, ptr::NonNull};
 
 pub trait MutAllocator {
     unsafe fn alloc(&mut self, layout: Layout) -> Option<NonNull<[u8]>>;
