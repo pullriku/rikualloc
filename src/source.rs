@@ -24,8 +24,10 @@ pub trait MemorySource {
 }
 
 impl<S: MemorySource + ?Sized> MemorySource for &mut S {
-    unsafe fn request_chunk(&mut self, layout: Layout)
-        -> Option<NonNull<[u8]>> {
+    unsafe fn request_chunk(
+        &mut self,
+        layout: Layout,
+    ) -> Option<NonNull<[u8]>> {
         unsafe { <S as MemorySource>::request_chunk(&mut **self, layout) }
     }
 

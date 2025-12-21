@@ -12,24 +12,26 @@ pub struct StaticBuffer<const N: usize> {
 }
 
 impl<const N: usize> MemorySource for StaticBuffer<N> {
-    unsafe fn request_chunk(&mut self, layout: Layout) -> Option<NonNull<[u8]>> {
-        let start_ptr = unsafe {
-            self.buffer.as_mut_ptr().cast::<u8>().add(self.offset)
-        };
+    unsafe fn request_chunk(
+        &mut self,
+        layout: Layout,
+    ) -> Option<NonNull<[u8]>> {
+        let start_ptr =
+            unsafe { self.buffer.as_mut_ptr().cast::<u8>().add(self.offset) };
         let start = start_ptr as usize;
 
         let aligned_start = align_up(start, layout.align());
         let padding = aligned_start - start;
 
         let alloc_size = layout.size() + padding;
-        
+
         if self.offset + alloc_size > N {
             return None;
         }
-        
+
         self.offset += alloc_size;
 
-        let ptr =  NonNull::new(aligned_start as *mut u8)?;
+        let ptr = NonNull::new(aligned_start as *mut u8)?;
         Some(NonNull::slice_from_raw_parts(ptr, layout.size()))
     }
 

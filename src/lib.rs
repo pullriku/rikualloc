@@ -7,7 +7,6 @@ extern crate std;
 extern crate alloc;
 
 pub mod allocator;
-pub mod locked;
 pub mod mutex;
 pub mod source;
 
