@@ -9,7 +9,7 @@ pub struct Mutex<T> {
 }
 
 impl<T> Mutex<T> {
-    pub fn new(value: T) -> Self {
+    pub const fn new(value: T) -> Self {
         Self { inner: InnerMutex::new(value) }
     }
 
