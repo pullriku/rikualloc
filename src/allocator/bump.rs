@@ -57,7 +57,7 @@ impl<S: MemorySource> MutAllocator for BumpAllocator<S> {
         };
 
         self.head = Some(node_ptr);
-        let user_start_u8_ptr = unsafe {  chunk_ptr.add(offset) };
+        let user_start_u8_ptr = unsafe { chunk_ptr.add(offset) };
         let new_cursor_u8_ptr = unsafe { user_start_u8_ptr.add(layout.size()) };
 
         let chunk_len = chunk_mem.len();
