@@ -1,0 +1,38 @@
+name: Check
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ std, no_std ]
+        include:
+          - name: std
+            flags: ""
+          - name: no_std
+            flags: "--no-default-features"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run cargo check with ${{ matrix.name }}
+        run: cargo check ${{ matrix.flags }}
+
+      - name: Run tests with ${{ matrix.name }}
+        # no_stdでは実行しない
+        if: matrix.name == 'std'
+        run: cargo test
