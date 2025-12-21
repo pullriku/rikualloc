@@ -10,16 +10,18 @@ pub struct Mutex<T> {
 
 impl<T> Mutex<T> {
     pub const fn new(value: T) -> Self {
-        Self { inner: InnerMutex::new(value) }
+        Self {
+            inner: InnerMutex::new(value),
+        }
     }
 
-    pub fn lock(&self) ->  InnerGuard<'_, T> {
+    pub fn lock(&self) -> InnerGuard<'_, T> {
         #[cfg(feature = "std")]
         {
             self.inner.lock().expect("failed to lock mutex")
         }
 
-        # [cfg(not(feature = "std"))]
+        #[cfg(not(feature = "std"))]
         {
             self.inner.lock()
         }
