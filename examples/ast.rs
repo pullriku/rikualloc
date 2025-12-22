@@ -1,20 +1,34 @@
 #![feature(allocator_api)]
-#![allow(unused)]
+#![allow(dead_code)]
 
-use std::{alloc::Allocator, fmt::Debug};
+use std::{
+    alloc::{Allocator, System},
+    fmt::Debug,
+    hint,
+    time::Instant,
+};
 
-use rikualloc::{allocator::bump::BumpAllocator, mutex::Locked, source::{os_heap::OsHeap, static_buff::StaticBuffer}};
+use rikualloc::{
+    allocator::bump::BumpAllocator, mutex::Locked, source::os_heap::OsHeap,
+};
 
 fn main() {
-    const BUFFER_SIZE: usize = 1024 * 1024 * 256;
-
     let src = include_str!("./expr.txt");
     let bump_alloc = Locked::new(BumpAllocator::new(OsHeap));
     let bump_ref = &bump_alloc;
 
-    let parse_result = parse(src, &bump_ref);
+    let bump_instant = Instant::now();
+    let bump_result = parse(src, &bump_ref);
+    let bump_elapsed = bump_instant.elapsed();
+    hint::black_box(bump_result);
 
-    println!("{:?}", parse_result);
+    let system_instant = Instant::now();
+    let system_result = parse(src, &System);
+    let system_elapsed = system_instant.elapsed();
+    hint::black_box(system_result);
+
+    println!("Bump: {}ms", bump_elapsed.as_millis());
+    println!("System: {}ms", system_elapsed.as_millis());
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -43,12 +57,19 @@ enum Ast<A: Allocator> {
     Group(Box<Ast<A>, A>),
 }
 
-impl <A: Allocator> Debug for Ast<A> {
+impl<A: Allocator> Debug for Ast<A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Ast::Integer(i) => f.debug_tuple("Integer").field(i).finish(),
-            Ast::BinaryOp { left, op, right } => f.debug_tuple("BinaryOp").field(left).field(op).field(right).finish(),
-            Ast::UnaryOp { op, right } => f.debug_tuple("UnaryOp").field(op).field(right).finish(),
+            Ast::BinaryOp { left, op, right } => f
+                .debug_tuple("BinaryOp")
+                .field(left)
+                .field(op)
+                .field(right)
+                .finish(),
+            Ast::UnaryOp { op, right } => {
+                f.debug_tuple("UnaryOp").field(op).field(right).finish()
+            }
             Ast::Group(ast) => f.debug_tuple("Group").field(ast).finish(),
         }
     }
@@ -265,14 +286,14 @@ impl Interpreter {
                 self.eval(*left);
                 self.eval(*right);
                 self.bin_op(op);
-            },
+            }
             Ast::UnaryOp { op, right } => {
                 self.eval(*right);
                 self.unary_op(op);
-            },
+            }
             Ast::Group(expr) => {
                 self.eval(*expr);
-            },
+            }
         }
     }
 
@@ -282,25 +303,23 @@ impl Interpreter {
                 let rhs = self.stack.pop().unwrap();
                 let lhs = self.stack.pop().unwrap();
                 self.stack.push(lhs + rhs);
-            },
+            }
             Token::Minus => {
                 let rhs = self.stack.pop().unwrap();
                 let lhs = self.stack.pop().unwrap();
                 self.stack.push(lhs - rhs);
-            },
+            }
             Token::Star => {
                 let rhs = self.stack.pop().unwrap();
                 let lhs = self.stack.pop().unwrap();
                 self.stack.push(lhs * rhs);
-            },
+            }
             Token::Slash => {
                 let rhs = self.stack.pop().unwrap();
                 let lhs = self.stack.pop().unwrap();
-                let rhs = if rhs == 0 {
-                    1
-                } else { rhs };
+                let rhs = if rhs == 0 { 1 } else { rhs };
                 self.stack.push(lhs / rhs);
-            },
+            }
             _ => unreachable!(),
         }
     }
@@ -310,11 +329,11 @@ impl Interpreter {
             Token::Plus => {
                 let n = self.stack.pop().unwrap();
                 self.stack.push(n);
-            },
+            }
             Token::Minus => {
                 let n = self.stack.pop().unwrap();
                 self.stack.push(-n);
-            },
+            }
             _ => unreachable!(),
         }
     }
