@@ -29,8 +29,7 @@ impl<T> Locked<T> {
     }
 }
 
-unsafe impl<T: MutAllocator> GlobalAlloc for Locked<T>
-{
+unsafe impl<T: MutAllocator> GlobalAlloc for Locked<T> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         self.with_lock(|value| match unsafe { value.alloc(layout) } {
             Some(ptr) => ptr.as_ptr().cast::<u8>(),
@@ -47,8 +46,7 @@ unsafe impl<T: MutAllocator> GlobalAlloc for Locked<T>
     }
 }
 
-impl<T: MemorySource> MemorySource for &Locked<T>
-{
+impl<T: MemorySource> MemorySource for &Locked<T> {
     unsafe fn request_chunk(
         &mut self,
         layout: Layout,
@@ -63,7 +61,8 @@ impl<T: MemorySource> MemorySource for &Locked<T>
 
 unsafe impl<T: MutAllocator> Allocator for &Locked<T> {
     fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        self.with_lock(|value| unsafe { value.alloc(layout) }).ok_or(AllocError)
+        self.with_lock(|value| unsafe { value.alloc(layout) })
+            .ok_or(AllocError)
     }
 
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
