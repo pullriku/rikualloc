@@ -5,7 +5,8 @@ use std::{
     alloc::{Allocator, System},
     fmt::Debug,
     hint,
-    time::Instant,
+    io::{Write, stdout},
+    time::{Duration, Instant},
 };
 
 use rikualloc::{
@@ -14,21 +15,37 @@ use rikualloc::{
 
 fn main() {
     let src = include_str!("./expr.txt");
-    let bump_alloc = Locked::new(BumpAllocator::new(OsHeap));
-    let bump_ref = &bump_alloc;
+    let mut bump_times = Vec::new();
+    let mut system_times = Vec::new();
 
-    let bump_instant = Instant::now();
-    let bump_result = parse(src, &bump_ref);
-    let bump_elapsed = bump_instant.elapsed();
-    hint::black_box(bump_result);
+    for i in 0..10 {
+        let bump_alloc = Locked::new(BumpAllocator::new(OsHeap));
+        let bump_ref = &bump_alloc;
 
-    let system_instant = Instant::now();
-    let system_result = parse(src, &System);
-    let system_elapsed = system_instant.elapsed();
-    hint::black_box(system_result);
+        let bump_instant = Instant::now();
+        let bump_result = parse(src, &bump_ref);
+        let bump_elapsed = bump_instant.elapsed();
+        bump_times.push(bump_elapsed);
+        hint::black_box(bump_result);
 
-    println!("Bump: {}ms", bump_elapsed.as_millis());
-    println!("System: {}ms", system_elapsed.as_millis());
+        let system_instant = Instant::now();
+        let system_result = parse(src, &System);
+        let system_elapsed = system_instant.elapsed();
+        system_times.push(system_elapsed);
+        hint::black_box(system_result);
+
+        print!("{i} ");
+        stdout().flush().unwrap();
+    }
+    println!();
+
+    fn median(mut v: Vec<Duration>) -> Duration {
+        v.sort_unstable();
+        v[v.len() / 2]
+    }
+
+    println!("Bump median: {} ms", median(bump_times).as_millis());
+    println!("System median: {} ms", median(system_times).as_millis());
 }
 
 #[derive(Debug, Clone, PartialEq)]
