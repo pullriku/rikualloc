@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use core::{
     alloc::Layout,
     mem,
