@@ -1,45 +1,54 @@
 use core::{
     alloc::Layout,
     mem::MaybeUninit,
-    ptr::{self, NonNull},
+    ptr::NonNull,
 };
 
-use crate::{align::align_up, source::MemorySource};
+use crate::source::MemorySource;
 
 pub struct StaticBuffer<const N: usize> {
     buffer: [MaybeUninit<u8>; N],
     offset: usize,
 }
 
-impl<const N: usize> MemorySource for StaticBuffer<N> {
+impl<const N: usize> MemorySource for &mut StaticBuffer<N> {
     unsafe fn request_chunk(
         &mut self,
         layout: Layout,
     ) -> Option<NonNull<[u8]>> {
-        let start_ptr =
-            unsafe { self.buffer.as_mut_ptr().cast::<u8>().add(self.offset) };
-        let start = start_ptr as usize;
+        let size = layout.size();
+        let align = layout.align();
 
-        let aligned_start = align_up(start, layout.align());
-        let padding = aligned_start - start;
-
-        let alloc_size = layout.size() + padding;
-
-        if self.offset + alloc_size > N {
+        if self.offset > N {
             return None;
         }
 
-        self.offset += alloc_size;
+        let base = self.buffer.as_mut_ptr().cast::<u8>();
+        let start_ptr = unsafe { base.add(self.offset) };
 
-        let ptr = NonNull::new(aligned_start as *mut u8)?;
-        Some(NonNull::slice_from_raw_parts(ptr, layout.size()))
+        // paddingを「ポインタから」計算（provenanceを壊さない）
+        let padding = start_ptr.align_offset(align);
+        if padding == usize::MAX {
+            return None;
+        }
+
+        let alloc_size = padding.checked_add(size)?;
+        let new_offset = self.offset.checked_add(alloc_size)?;
+        if new_offset > N {
+            return None;
+        }
+        self.offset = new_offset;
+
+        let aligned_ptr = unsafe { start_ptr.add(padding) };
+        let nn = NonNull::new(aligned_ptr)?;
+        Some(NonNull::slice_from_raw_parts(nn, size))
     }
 
     unsafe fn release_chunk(&mut self, _ptr: NonNull<u8>, _layout: Layout) {}
 }
 
 impl<const N: usize> StaticBuffer<N> {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             buffer: [MaybeUninit::uninit(); N],
             offset: 0,
