@@ -3,16 +3,12 @@ use core::{
     ptr::{self, NonNull},
 };
 
-#[cfg(feature = "std")]
-use std::sync::{Mutex as InnerMutex, MutexGuard as InnerGuard};
-
-#[cfg(not(feature = "std"))]
-use spin::{Mutex as InnerMutex, MutexGuard as InnerGuard};
+use spin::{Mutex, MutexGuard};
 
 use crate::{allocator::MutAllocator, source::MemorySource};
 
 pub struct Locked<T> {
-    inner: Mutex<T>,
+    inner: spin::Mutex<T>,
 }
 
 impl<T> Locked<T> {
@@ -22,13 +18,13 @@ impl<T> Locked<T> {
         }
     }
 
-    fn lock(&self) -> InnerGuard<'_, T> {
+    fn lock(&self) -> MutexGuard<'_, T> {
         self.inner.lock()
     }
 
     pub fn with_lock<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
-        let mut g = self.lock();
-        f(&mut *g)
+        let mut guard = self.lock();
+        f(&mut *guard)
     }
 }
 
@@ -65,29 +61,5 @@ where
 
     unsafe fn release_chunk(&mut self, ptr: NonNull<u8>, layout: Layout) {
         self.with_lock(|mut value| unsafe { value.release_chunk(ptr, layout) })
-    }
-}
-
-pub struct Mutex<T> {
-    inner: InnerMutex<T>,
-}
-
-impl<T> Mutex<T> {
-    pub const fn new(value: T) -> Self {
-        Self {
-            inner: InnerMutex::new(value),
-        }
-    }
-
-    pub fn lock(&self) -> InnerGuard<'_, T> {
-        #[cfg(feature = "std")]
-        {
-            self.inner.lock().expect("failed to lock mutex")
-        }
-
-        #[cfg(not(feature = "std"))]
-        {
-            self.inner.lock()
-        }
     }
 }

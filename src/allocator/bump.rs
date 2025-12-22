@@ -33,7 +33,6 @@ impl<S: MemorySource> MutAllocator for BumpAllocator<S> {
         // アラインメントに必要なバイト数のパディング
         // alignに合わせるためには何バイト必要か
         let pad = self.ptr.as_ptr().align_offset(layout.align());
-
         if pad == usize::MAX {
             return None;
         }
@@ -77,16 +76,26 @@ impl<S: MemorySource> BumpAllocator<S> {
         debug_assert!(self.ptr.as_ptr().addr() <= self.end.as_ptr().addr());
 
         let head_layout = Layout::new::<ChunkNode>();
-        let (request_layout, offset) = head_layout.extend(layout).ok()?;
-        let final_layout = Layout::from_size_align(
-            request_layout.size().max(4096),
+        let (request_layout, header_size) = head_layout.extend(layout).ok()?;
+
+        let request_layout = Layout::from_size_align(
+            request_layout.size().max(4096), // 4096以上
             request_layout.align(),
         )
         .ok()?;
 
-        let chunk_mem = unsafe { self.source.request_chunk(final_layout)? };
+        let chunk_mem = unsafe { self.source.request_chunk(request_layout)? };
 
-        debug_assert!(offset + layout.size() <= chunk_mem.len());
+        debug_assert!(header_size + layout.size() <= chunk_mem.len());
+
+        let need = header_size.checked_add(layout.size())?;
+        if need > chunk_mem.len() {
+            return None;
+        }
+
+        let actual_layout =
+            Layout::from_size_align(chunk_mem.len(), request_layout.align())
+                .ok()?;
 
         let chunk_ptr = chunk_mem.cast::<u8>();
         let node_ptr = chunk_ptr.cast::<ChunkNode>();
@@ -94,24 +103,20 @@ impl<S: MemorySource> BumpAllocator<S> {
             node_ptr.write(ChunkNode {
                 next: self.head,
                 ptr: chunk_ptr,
-                layout: final_layout,
+                layout: actual_layout,
             })
         };
 
         self.head = Some(node_ptr);
-        let user_start_u8_ptr = unsafe { chunk_ptr.add(offset) };
-        let new_cursor_u8_ptr = unsafe { user_start_u8_ptr.add(layout.size()) };
+        let user_start_ptr = unsafe { chunk_ptr.add(header_size) };
+        let new_cursor_ptr = unsafe { user_start_ptr.add(layout.size()) };
 
-        let chunk_len = chunk_mem.len();
-        let chunk_end_u8_ptr = unsafe { chunk_ptr.add(chunk_len) };
+        let chunk_end_ptr = unsafe { chunk_ptr.add(chunk_mem.len()) };
 
-        self.ptr = new_cursor_u8_ptr;
-        self.end = chunk_end_u8_ptr;
+        self.ptr = new_cursor_ptr;
+        self.end = chunk_end_ptr;
 
-        Some(NonNull::slice_from_raw_parts(
-            user_start_u8_ptr,
-            layout.size(),
-        ))
+        Some(NonNull::slice_from_raw_parts(user_start_ptr, layout.size()))
     }
 }
 

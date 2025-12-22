@@ -1,20 +1,19 @@
 use core::{
     alloc::Layout,
     ptr::{self, NonNull},
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use crate::{align::align_up, source::MemorySource};
 
-pub struct OsHeap {
-    page_size: usize,
-}
+pub struct OsHeap;
 
 impl MemorySource for OsHeap {
     unsafe fn request_chunk(
         &mut self,
         layout: Layout,
     ) -> Option<core::ptr::NonNull<[u8]>> {
-        let page_size = self.page_size;
+        let page_size = page_size();
 
         let alloc_size = align_up(layout.size(), page_size);
 
@@ -44,7 +43,7 @@ impl MemorySource for OsHeap {
         ptr: core::ptr::NonNull<u8>,
         layout: core::alloc::Layout,
     ) {
-        let alloc_size = align_up(layout.size(), self.page_size);
+        let alloc_size = align_up(layout.size(), page_size());
 
         unsafe {
             libc::munmap(ptr.as_ptr().cast::<libc::c_void>(), alloc_size);
@@ -52,20 +51,15 @@ impl MemorySource for OsHeap {
     }
 }
 
-impl OsHeap {
-    pub fn new() -> Self {
-        Self {
-            page_size: get_page_size(),
-        }
-    }
-}
+static PAGE_SIZE: AtomicUsize = AtomicUsize::new(0);
 
-impl Default for OsHeap {
-    fn default() -> Self {
-        Self::new()
+fn page_size() -> usize {
+    let page_size = PAGE_SIZE.load(Ordering::Relaxed);
+    if page_size != 0 {
+        return page_size;
     }
-}
-
-fn get_page_size() -> usize {
-    unsafe { libc::sysconf(libc::_SC_PAGE_SIZE) as usize }
+    let result = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    let page_size = if result > 0 { result as usize } else { 4096 };
+    PAGE_SIZE.store(page_size, Ordering::Relaxed);
+    page_size
 }
