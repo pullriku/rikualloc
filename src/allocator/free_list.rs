@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use core::{
     alloc::Layout,
     mem,
@@ -8,7 +6,7 @@ use core::{
 
 use crate::{allocator::MutAllocator, source::MemorySource};
 
-#[deprecated(note = "雑に作った")]
+/// 雑に作った free list
 pub struct FreeList<S: MemorySource> {
     source: S,
     head: Option<NonNull<ListNode>>,

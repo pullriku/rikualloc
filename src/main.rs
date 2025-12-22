@@ -1,8 +1,11 @@
+#![allow(unused)]
+
 use std::{
     alloc::{Layout, alloc},
     hint,
 };
 
+#[allow(unused_imports)]
 use rikualloc::{
     allocator::{bump::BumpAllocator, free_list::FreeList},
     mutex::Locked,
