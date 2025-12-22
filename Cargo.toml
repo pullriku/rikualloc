@@ -10,3 +10,6 @@ std = []
 [dependencies]
 libc = "0.2.178"
 spin = "0.10.0"
+
+[dev-dependencies]
+libc = { version = "0.2.178", default-features = false }
