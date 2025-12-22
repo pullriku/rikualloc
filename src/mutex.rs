@@ -1,8 +1,7 @@
 use core::{
-    alloc::{GlobalAlloc, Layout},
+    alloc::{GlobalAlloc, Layout, AllocError, Allocator},
     ptr::{self, NonNull},
 };
-use std::alloc::{AllocError, Allocator};
 
 use spin::{Mutex, MutexGuard};
 
